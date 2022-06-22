@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Information Visualization - Assignment 3</title>
+
+    <style>
+        body {
+            font-family: "Lato", sans-serif
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Load d3 script -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
+
+    <!-- Navbar -->
+    <div class="w3-top">
+        <div class="w3-bar w3-black w3-card">
+            <a class="w3-bar-item w3-button w3-padding-large w3-hide-medium w3-hide-large w3-right"
+                href="javascript:void(0)" onclick="myFunction()" title="Toggle Navigation Menu"><i
+                    class="fa fa-bars"></i></a>
+            <a href="#" class="w3-bar-item w3-button w3-padding-large">Singapore Population</a>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="w3-content" style="max-width:2000px; margin-top:20px;">
+
+
+        <!-- The Start Section -->
+        <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:1000px" id="band">
+            <h2 class="w3-wide">Chloropleth Visualization of Population in Singapore</h2>
+            <p class="w3-opacity"><i>According to Singstat Population Geospatial Timeseries</i></p>
+            <div class="w3-row w3-padding-32">
+
+                <!-- Initialise svg and tooltip -->
+                <svg></svg>
+                <div class="tooltip"></div>
+
+            </div>
+        </div>
+        <div class="tooltip"></div>
+
+        <script>
+
+            // Define svg width and height
+            let width = 1000, height = 600;
+            let mapData = new Map();
+
+            let svg = d3.select("svg")
+                .attr("viewBox", "0 0 " + width + " " + height)
+
+            // Load external data
+            Promise.all([d3.json("sgmap.json"), d3.csv("population2021.csv", function (d) {
+                mapData.set(d.Subzone.toUpperCase(), d.Population)
+            })])
+
+                .then(data => {
+
+                    console.log(mapData)
+
+                    // Define legend values and labels
+                    var legendValues = [50, 500, 1000, 5000, 10000, 20000, 50000];
+                    var legendLabels = ["<50", "50-500", "500-1000", "1000-5000", "5000-10000", "10000-20000", "20000-50000", ">50000"]
+
+                    // Define Color Scale
+                    var colorScale = d3.scaleThreshold()
+                        .domain(legendValues)
+                        .range(d3.schemeOrRd[8]);
+
+                    // Map and projection
+                    var projection = d3.geoMercator()
+                        .center([103.851959, 1.290270])
+                        .fitExtent([[20, 20], [980, 580]], data[0]);
+
+                    // Define path generator
+                    let geopath = d3.geoPath().projection(projection);
+                    
+                    // Define tooltip
+                    var tooltip = d3.select(".tooltip")
+                        .style("opacity", 0)
+
+                    // Append the svg with properties    
+                    svg.append("g")
+                        .attr("id", "districts")
+                        .selectAll("path")
+                        .data(data[0].features)
+                        .enter()
+                        .append("path")
+                        .attr("d", geopath)
+                        .attr("fill", function (d) {
+                            d.total = mapData.get(d.properties.Name) || 0;
+                            return colorScale(d.total);
+                        })
+                        // .attr("text-anchor", "left")
+                        // .style("alignment-baseline", "middle")
+                        .style("stroke", "black")
+                        .style("stroke-width", 1)
+                        .style("opacity", .5)
+                        .on("mouseover", function (event, d) {
+                            d3.select(event.currentTarget)
+                                .style("stroke", "black")
+                                .style("stroke-width", 3)
+                                .style("opacity", 5)
+
+                            tooltip
+                                .transition()
+                                .duration(100)
+                                .style("opacity", 1)
+                                .style("position", "absolute")
+                                .style("background-color", "white")
+
+                            tooltip
+                                .html(`${d.properties.Name}` + '<br>' + 'Population: ' + `${d.total}`)
+                                .style("top", (event.pageY) + "px")
+                                .style("left", (event.pageX) + "px")
+
+                        })
+                        .on("mouseout", function (event, d) {
+                            d3.select(event.currentTarget)
+                                .style("stroke", "black")
+                                .style("stroke-width", 1)
+                                .style("opacity", 0.5)
+
+                            tooltip
+                                .transition()
+                                .duration(100)
+                                .style("opacity", 0)
+                        })
+
+                    var legend = d3.legendColor()
+                        .labels(legendLabels)
+                        .scale(colorScale)
+                        .shapeWidth(10)
+                        .title("Legend")
+                        .orient("vertical")
+                        ;
+
+                    svg.append("g")
+                        .attr("transform", "translate(0,10)")
+                        .call(legend);
+
+                })
+
+        </script>
+
+        <!-- Footer -->
+        <footer class="w3-container w3-padding-100 w3-center w3-opacity w3-light-grey w3-small">
+            <p>Khloe Lim Xin Hui 1901865</p>
+            <p class="w3-small">GitHub link <a href="https://github.com/khloelxh/CSC3007-assignment3/"
+                    target="_blank">here</a></p>
+        </footer>
+
+</body>
+
+</html>
